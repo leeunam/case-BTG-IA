@@ -1,0 +1,12 @@
+context/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.env
+data/raw/
+data/cvm/
+*.parquet
+.DS_Store

@@ -1,0 +1,29 @@
+# LLM & Agents
+langchain-groq
+langchain-core
+langgraph
+
+# Database
+psycopg[binary]>=3.1
+pyarrow>=14.0
+
+# Data collection
+requests>=2.31
+httpx>=0.27
+beautifulsoup4>=4.12
+lxml>=5.0
+python-bcb
+playwright
+
+# Pipeline
+apscheduler>=3.10
+
+# Data processing
+pandas>=2.0
+
+# Dashboard
+streamlit>=1.35
+plotly>=5.18
+
+# Utils
+python-dotenv
