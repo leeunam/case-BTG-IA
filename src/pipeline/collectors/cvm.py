@@ -24,7 +24,12 @@ _ZIP_URL = "https://dados.cvm.gov.br/dados/OFERTA/DISTRIB/DADOS/oferta_distribui
 # Does NOT match CRI ("recebíveis imobiliários") — uses "fundo imobili" prefix
 _FII_RE_DIST = re.compile(r"(?i)fundo imobili|FII")
 _FII_RE_R160 = re.compile(r"(?i)imobili|FII")
-_BACKFILL_YEAR = 2022
+def _cutoff_date():
+    """30 days back — only process offers registered in the last month.
+    The CVM CSV is always downloaded in full (bulk file, no date API).
+    This cutoff filters which rows are INSERTed into the database."""
+    from datetime import date, timedelta
+    return date.today() - timedelta(days=30)
 
 # Status mapping for oferta_resolucao_160 Status_Requerimento values
 _STATUS_MAP = {
@@ -115,9 +120,9 @@ class CVMCollector(BaseCollector):
         df_fii_dist = df_dist[mask_dist].copy()
         df_fii_res  = df_res[mask_res].copy()
 
-        # Apply backfill year filter
-        df_fii_dist = self._filter_by_year(df_fii_dist, "Data_Registro_Oferta")
-        # oferta_resolucao_160 starts at 2023 already, no filter needed
+        # Filter to last 30 days — CSV is always downloaded in full, this limits DB inserts
+        df_fii_dist = self._filter_by_date(df_fii_dist, "Data_Registro_Oferta")
+        df_fii_res  = self._filter_by_date(df_fii_res,  "Data_Protocolo")
 
         print(f"  FII offers: {len(df_fii_dist):,} (distribuição) + {len(df_fii_res):,} (resolução 160)")
 
@@ -160,11 +165,13 @@ class CVMCollector(BaseCollector):
         return read(csv_names[0]), read(csv_names[1])
 
     @staticmethod
-    def _filter_by_year(df: pd.DataFrame, date_col: str) -> pd.DataFrame:
+    def _filter_by_date(df: pd.DataFrame, date_col: str) -> pd.DataFrame:
+        """Keep only rows registered in the last 30 days."""
         if date_col not in df.columns:
             return df
-        years = pd.to_datetime(df[date_col], errors="coerce").dt.year
-        return df[years >= _BACKFILL_YEAR].copy()
+        dates = pd.to_datetime(df[date_col], errors="coerce").dt.date
+        cutoff = _cutoff_date()
+        return df[dates >= cutoff].copy()
 
     # ─── Alert helpers ────────────────────────────────────────────────────────
 

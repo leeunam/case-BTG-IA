@@ -10,14 +10,24 @@ from src.db.connection import get_conn
 from src.pipeline.collectors.base import BaseCollector
 
 # SGS series codes
+# Source attribution for display/tooltips:
+#   SELIC_META / SELIC → BCB (set by COPOM)
+#   CDI                → B3/CETIP primary; BCB/SGS série 12 mirrors it
+#   IPCA               → IBGE primary; BCB/SGS série 433 mirrors it
+#   IGPM               → FGV primary; BCB/SGS série 189 mirrors it
 _SGS_SERIES = {
-    "CDI":   12,   # Taxa CDI diária (% a.a.)
-    "SELIC": 11,   # Taxa SELIC diária (% a.a.)
-    "IPCA":  433,  # IPCA mensal (%)
-    "IGPM":  189,  # IGP-M mensal (%)
+    "SELIC_META": 13521,  # Meta Selic definida pelo COPOM (% a.a.) — preferred for dashboard display
+    "SELIC":      11,     # Taxa Selic efetiva diária (% a.a.)
+    "CDI":        12,     # Taxa CDI diária (% a.a.) — primary source: B3/CETIP
+    "IPCA":       433,    # IPCA mensal (%) — primary source: IBGE
+    "IGPM":       189,    # IGP-M mensal (%) — primary source: FGV
 }
 
-_BACKFILL_START = "2022-01-01"
+def _rolling_start() -> str:
+    """1 year back from today — covers the 12-month IPCA/Selic/CDI charts.
+    Macro indicators need 1 year of history; offers/FII data uses 30 days."""
+    from datetime import date, timedelta
+    return (date.today() - timedelta(days=365)).strftime("%Y-%m-%d")
 
 
 class BCBCollector(BaseCollector):
@@ -27,7 +37,7 @@ class BCBCollector(BaseCollector):
     def _run(self) -> dict:
         from bcb import sgs
 
-        start = _BACKFILL_START
+        start = _rolling_start()
         total_new = total_updated = 0
 
         all_frames = []
@@ -75,7 +85,7 @@ class BCBCollector(BaseCollector):
                 df = (
                     ep.query()
                     .filter(ep.Indicador == indicador)
-                    .filter(ep.Data >= _BACKFILL_START)
+                    .filter(ep.Data >= _rolling_start())
                     .orderby(ep.Data.desc())
                     .limit(250)
                     .collect()

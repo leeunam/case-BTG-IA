@@ -1,84 +1,28 @@
 # BTG FII Analyzer
 
-## Sobre o projeto
-
-Agente de análise e contextualização de ofertas primárias de Fundos Imobiliários (FII). O sistema coleta automaticamente dados de múltiplas fontes (CVM, ANBIMA, B3, Funds Explorer, BTG, XP e outras), compara as ofertas em andamento entre si e contra benchmarks de mercado, e contextualiza as variações embasado em indicadores macroeconômicos e eventos recentes.
-
-O projeto é desenvolvido como case para o Banco BTG Pactual e faz parte do escopo mais amplo de análise de ofertas primárias de renda variável, começando por FIIs.
+Monitoramento automatizado de ofertas primárias de Fundos Imobiliários — desenvolvido como case técnico para o Banco BTG Pactual em parceria com a Liga de Inteligência Artificial do Inteli.
 
 ---
 
-## Pipeline
+## O projeto
 
-```
-[1. Coleta]
-  ├── CVM Dados Abertos       → ofertas primárias em andamento (CSV/API)
-  ├── CVM SDI                 → prospectos e lâminas em PDF (scraping simples)
-  ├── ANBIMA                  → benchmark IFIX e dados de emissões (Jina)
-  ├── Funds Explorer          → DY histórico, P/VP, vacância, tipo FII (Playwright)
-  ├── Status Invest           → dividendos históricos, P/VP (Playwright)
-  ├── BCB SGS via python-bcb  → CDI, IPCA histórico e projetado (API direta)
-  ├── BTG Digital / XP        → ofertas concorrentes ativas (Jina)
-  └── InfoMoney / portais     → notícias para contextualização (Jina)
+Toda vez que um novo fundo imobiliário abre capital ou lança uma nova emissão, essa oferta precisa ser registrada na CVM. Acompanhar esse fluxo manualmente, cruzando dados de regulador, bolsa e banco central, é lento e sujeito a erro.
 
-[2. Tratamento]
-  ├── Normalização de tickers (padrão B3 com sufixo .SA)
-  ├── Parsing de PDFs (prospectos/lâminas) com LLM
-  └── Padronização de datas, percentuais e valores monetários
+Este sistema faz isso automaticamente. Todo dia, coleta as ofertas da CVM, enriquece com dados de mercado e contextualiza com indicadores econômicos. A equipe de mesa acessa tudo em um dashboard e pode fazer perguntas diretamente a um agente de IA.
 
-[3. Análise comparativa]
-  ├── Rentabilidade: DY atual vs CDI e IPCA projetado
-  ├── Tamanho: PL do fundo e volume da oferta vs mercado
-  ├── Preço: P/VP vs média de FIIs similares (por segmento)
-  └── Benchmark: posicionamento relativo ao IFIX/ANBIMA
-
-[4. Contextualização]
-  ├── Correlação DY com ciclo de juros (Selic/IPCA)
-  └── Notícias recentes relevantes (real estate, tributação, política monetária)
-
-[5. Output]
-  ├── Dashboard Streamlit (tabelas ag-grid + gráficos Plotly)
-  └── Relatório analítico gerado por LLM
-```
+Sem recomendação de investimento. Sem dados proprietários. Tudo de fontes públicas e oficiais.
 
 ---
 
-## Hierarquia de análise
+## O que entrega
 
-1. **Rentabilidade** — DY da oferta comparado ao CDI e IPCA projetado no mesmo período
-2. **Tamanho** — PL do fundo e volume total da oferta vs. outros FIIs em oferta primária
-3. **Preço relativo** — P/VP da oferta vs. mercado secundário e FIIs do mesmo segmento
-4. **Benchmark** — posicionamento relativo ao índice IFIX e ao benchmark ANBIMA
-
----
-
-## Cadeia de modelos (Groq)
-
-| Etapa | Modelo | Motivo |
-|---|---|---|
-| Extração estruturada de páginas web | `llama-3.1-8b-instant` | Rápido e barato para tarefas mecânicas de extração com schema Pydantic |
-| Parsing de prospectos/lâminas (PDF) | `qwen-3-32b` | Forte em documentos longos e extração de dados financeiros estruturados |
-| Análise comparativa e scoring | `llama-3.3-70b-versatile` | Melhor raciocínio quantitativo |
-| Contextualização macroeconômica | `openai/gpt-oss-120b` | Síntese qualitativa de alta complexidade |
-| Geração do relatório final | `openai/gpt-oss-120b` | Qualidade narrativa para relatório analítico em português |
-
----
-
-## Fontes de dados
-
-| Fonte | O que fornece | Método | Status |
-|---|---|---|---|
-| CVM Dados Abertos | Ofertas primárias, histórico desde 1989 | API/CSV | ✅ Funcionando |
-| CVM SDI (documentos) | Prospectos e lâminas em PDF | Scraping simples | ✅ Funcionando |
-| BCB SGS via python-bcb | CDI, IPCA, Selic histórico e projetado | API direta | ✅ Funcionando |
-| BCB Relatório Focus | CDI e IPCA esperados pelo mercado | Jina | ⚠️ Parcial |
-| ANBIMA | Benchmark IFIX, dados de emissões | Jina + scraping | ⚠️ Parcial |
-| B3 FII listagem | Tickers ativos, setor, gestora | Jina | ⚠️ Parcial |
-| Funds Explorer | DY histórico, P/VP, vacância, segmento | Playwright | 🔄 Em teste |
-| Status Invest | Dividendos históricos, P/VP | Playwright | 🔄 Em teste |
-| BTG Digital (FIIs) | Oferta atual do BTG | Jina | 🔄 Em teste |
-| XP (FIIs) | Ofertas concorrentes | Jina / Playwright | ⚠️ Parcial |
-| InfoMoney (notícias FII) | Contextualização informacional | Jina | ✅ Funcionando |
+- Tabela de ofertas em andamento com status, coordenador, volume, gestor e documentos
+- Separação clara entre IPO (fundo novo, sem histórico) e follow-on (fundo existente)
+- Indicadores de mercado — DY, P/VP, vacância, volume diário — apenas quando existem, com fonte explícita
+- Contexto macroeconômico — Selic, CDI, IPCA, IFIX — atualizado diariamente
+- Alertas automáticos para novas ofertas, mudanças de status e falhas de coleta
+- Histórico completo de dividendos por fundo (via Status Invest)
+- Agente de IA conversacional com acesso a todos os dados da aplicação
 
 ---
 
@@ -86,89 +30,161 @@ O projeto é desenvolvido como case para o Banco BTG Pactual e faz parte do esco
 
 | Camada | Tecnologia |
 |---|---|
-| Orquestração / Agente | LangChain, LangGraph |
-| LLM | ChatGroq (qwen-3-32b, llama-3.3-70b, llama-3.1-8b, gpt-oss-120b) |
-| Coleta dinâmica | Playwright |
-| Coleta via leitura web | r.jina.ai |
-| Dados BCB | python-bcb |
-| Vector Store | pgvector (PostgreSQL extension — Fase 2) |
-| Interface | Streamlit + Plotly |
-| Pipeline agendado | APScheduler |
-| Banco de dados | PostgreSQL (Supabase) |
-| Linguagem | Python 3.11+ |
+| Banco de dados | PostgreSQL (Supabase) + pgvector |
+| API backend | FastAPI + uvicorn |
+| Frontend | React 18 + TypeScript + Tailwind CSS |
+| Agente de IA | LangGraph + ChatGroq (llama-3.3-70b) |
+| Pipeline diário | Python + APScheduler |
+| Coleta de dados | httpx, python-bcb, BeautifulSoup, yfinance |
+| Raw data | Parquet |
 
 ---
 
-## Estrutura do repositório
+## Estrutura
 
 ```
-├── requirements.txt
+case-BTG-IA/
 ├── src/
-│   ├── db/
-│   │   ├── connection.py                  # get_conn() — psycopg3 context manager
-│   │   ├── migrate.py                     # Aplica migrações SQL
-│   │   └── migrations/
-│   │       └── 001_initial_schema.sql     # Schema completo (14 tabelas + pgvector)
-│   └── pipeline/
-│       ├── run.py                         # Orquestrador (manual ou scheduler)
-│       ├── scheduler.py                   # APScheduler 06:30 diário
-│       └── collectors/
-│           ├── base.py                    # BaseCollector (audit trail automático)
-│           ├── cvm.py                     # CVM Dados Abertos (FIIs + alertas)
-│           ├── fundamentus.py             # Fundamentus (DY, P/VP, vacância)
-│           └── bcb.py                     # BCB SGS + Focus (CDI, IPCA, Selic)
-├── app/
-│   ├── db.py                              # Queries compartilhadas
-│   ├── Home.py                            # KPIs + últimas ofertas
-│   └── pages/
-│       ├── 1_Ofertas_Primárias.py         # Tabela com filtros + referência secundário
-│       ├── 2_Comparativo_Players.py       # Ranking + timeline + alertas de concentração
-│       ├── 3_Atividade_Institucional.py   # Metadados + treemap
-│       ├── 4_Macro.py                     # CDI, IPCA, Selic + projeções Focus
-│       └── 5_Alertas.py                   # Alertas do pipeline
-├── data/
-│   └── raw/YYYY-MM-DD/                    # Snapshots brutos em Parquet (imutável)
+│   ├── api/               # FastAPI — 30 endpoints em 7 routers
+│   ├── agents/            # Agente ReAct com 5 tools
+│   ├── db/                # Migrations (001–004) e conexão psycopg3
+│   └── pipeline/          # 8 collectors + embedder + scheduler
+│
+├── frontend/              # React + Tailwind (5 páginas)
+├── data/raw/YYYY-MM-DD/   # Snapshots brutos em Parquet
+├── docs/                  # ARQUITETURA.md e AGENTS.md
+├── pyproject.toml
+└── .env
 ```
 
 ---
 
-## Como iniciar
+## Como rodar
 
-### 1. Configurar ambiente
+### Pré-requisitos
+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL com extensão `pgvector` (ou conta no Supabase)
+- Chave de API do Groq (gratuita em [console.groq.com](https://console.groq.com))
+
+---
+
+### 1. Clone e configure o ambiente Python
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-playwright install firefox
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e .
 ```
 
-### 2. Variáveis de ambiente
+### 2. Configure as variáveis de ambiente
 
-Criar arquivo `.env`:
+Crie `.env` na raiz do projeto:
 
 ```env
-GROQ_API_KEY=sua_chave_aqui
+GROQ_API_KEY=gsk_...            # Obrigatório — LLM (Groq)
+DATABASE_URL=postgresql://...   # Obrigatório — PostgreSQL/Supabase
+OPENAI_API_KEY=sk-...           # Opcional — embeddings de melhor qualidade
 ```
 
-### 3. Rodar os scripts disponíveis
+### 3. Crie o banco de dados
 
 ```bash
-# Baixar e analisar dados de ofertas da CVM
-python src/data_ingestion/download_cvm_ofertas.py
-
-# Testar acessibilidade das fontes via Jina
-python scraping-inicial.py
-
-# Agente interativo com dados reais (requer GROQ_API_KEY)
-python src/agents/agent.py
+python src/db/migrate.py
 ```
+
+Aplica as 4 migrations em sequência. Seguro para rodar mais de uma vez.
+
+### 4. Rode a coleta inicial de dados
+
+```bash
+python -m src.pipeline.run
+```
+
+Baixa dados de todas as 8 fontes. O dashboard por padrão exibe o último mês — os dados históricos ficam no banco para análise e busca semântica. A primeira execução pode levar alguns minutos dependendo da velocidade da conexão.
+
+Para rodar só uma fonte específica:
+
+```bash
+python -m src.pipeline.run bcb_sgs          # só BCB (~30s)
+python -m src.pipeline.run cvm_dados_abertos # só CVM (~2 min)
+```
+
+### 5. Inicie a API (terminal 1)
+
+```bash
+uvicorn src.api.main:app --reload --port 8000
+```
+
+- API: `http://localhost:8000`
+- Documentação interativa: `http://localhost:8000/docs`
+
+### 6. Inicie o frontend (terminal 2)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- App: `http://localhost:5173`
+- O Vite faz proxy automático de `/api` para `localhost:8000` — sem CORS na dev.
+
+### 7. (Opcional) Gere o AI insight do dia
+
+```bash
+curl -X POST http://localhost:8000/api/dashboard/daily-insight/generate
+```
+
+O insight é gerado em background e salvo no banco. Recarregue o dashboard depois.
+
+### 8. (Opcional) Gere embeddings para busca semântica
+
+```bash
+python -m src.pipeline.embedder --type=offers --limit=500
+```
+
+Necessário para a ferramenta `buscar_semantico` do agente funcionar.
+
+### 9. Agendamento automático (opcional)
+
+```bash
+python -m src.pipeline.scheduler
+```
+
+Mantém a coleta rodando toda manhã às 06:30 (horário de Brasília). Encerra com `Ctrl+C`.
 
 ---
 
-## Escopo futuro
+## Documentação técnica
 
-Em fases posteriores, o sistema poderá ser expandido para:
+- [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) — estrutura completa do projeto, decisões de design, schema do banco
+- [`docs/AGENTS.md`](docs/AGENTS.md) — funcionamento do agente de IA, tools, prompting
 
-- **Ações** — ofertas primárias (IPOs e follow-ons)
-- **Renda fixa** — CRI, CRA, LCI, LCA, FIDC, Debêntures isentas e não isentas (com foco em comparação vs CDI pela isenção tributária)
+---
+
+## Roadmap
+
+- [ ] Parsing de PDFs de prospectos e lâminas via LLM — para capturar termos financeiros que não estão nos CSVs (cap rate, LTV, duration)
+- [ ] Relatório em PDF formatado — a geração de texto via LLM já existe; falta o renderer (WeasyPrint ou Puppeteer) para entregar um `.pdf` real
+- [ ] Análise IA do player top na tela Cenário Geral — pré-gerada no pipeline, similar ao insight diário
+- [ ] Expansão para outros ativos — ações (IPOs/follow-ons), CRI, CRA, FIDC, debêntures
+
+---
+
+## Autor
+
+**Leunam Sousa de Jesus** — case técnico para o Banco BTG Pactual, Liga AI — 2026.
+
+---
+
+## Licença
+
+MIT License — Copyright (c) 2026 Leunam Sousa de Jesus
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

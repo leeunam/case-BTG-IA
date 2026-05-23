@@ -60,12 +60,15 @@ CREATE TABLE IF NOT EXISTS vehicle (
     id             SERIAL  PRIMARY KEY,
     issuer_id      INT     REFERENCES issuer(id),
     asset_class_id INT     NOT NULL REFERENCES asset_class(id),
-    ticker         VARCHAR(10),
-    cvm_code       VARCHAR(20),
-    name           TEXT    NOT NULL,
-    segment        VARCHAR(50),       -- logistica | shoppings | lajes | papel | hibrido | fof | outros
-    is_active      BOOLEAN DEFAULT TRUE,
-    extra          JSONB   DEFAULT '{}',
+    ticker            VARCHAR(10),
+    cvm_code          VARCHAR(20),
+    name              TEXT    NOT NULL,
+    segment           VARCHAR(50),        -- logistica | shoppings | lajes | papel | hibrido | fof | outros
+    fund_type         VARCHAR(20),        -- tijolo | papel | fof | desenvolvimento | hibrido | outros
+    gestor_id         INT,                -- FK added after participant table; see bottom of file
+    administrador_id  INT,                -- FK added after participant table; see bottom of file
+    is_active         BOOLEAN DEFAULT TRUE,
+    extra             JSONB   DEFAULT '{}',
     created_at     TIMESTAMPTZ DEFAULT NOW(),
     updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
@@ -97,6 +100,10 @@ CREATE TABLE IF NOT EXISTS offer (
     bookbuilding              BOOLEAN,
     target_audience           VARCHAR(30),
     -- profissional | qualificado | geral
+    is_ipo                    BOOLEAN,
+    offer_sequence            INT,        -- 1 = IPO, 2+ = follow-on
+    distribution_rite         VARCHAR(30),
+    -- rito_ordinario | rito_automatico | esforcos_restritos
     financial_terms_available BOOLEAN DEFAULT TRUE,
     financial_terms_note      TEXT,
     extra                     JSONB   DEFAULT '{}',
@@ -104,10 +111,12 @@ CREATE TABLE IF NOT EXISTS offer (
     updated_at                TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_offer_vehicle      ON offer(vehicle_id);
-CREATE INDEX IF NOT EXISTS idx_offer_status       ON offer(status);
-CREATE INDEX IF NOT EXISTS idx_offer_started_at   ON offer(started_at);
-CREATE INDEX IF NOT EXISTS idx_offer_registered   ON offer(registered_at);
+CREATE INDEX IF NOT EXISTS idx_offer_vehicle    ON offer(vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_offer_status     ON offer(status);
+CREATE INDEX IF NOT EXISTS idx_offer_started_at ON offer(started_at);
+CREATE INDEX IF NOT EXISTS idx_offer_registered ON offer(registered_at);
+-- idx_offer_is_ipo and idx_offer_distribution_rite are in the DO block at the bottom of this file
+-- (deferred because they depend on columns that don't exist in pre-migration databases)
 
 CREATE TABLE IF NOT EXISTS tranche (
     id             SERIAL PRIMARY KEY,
@@ -179,18 +188,21 @@ CREATE TABLE IF NOT EXISTS source (
 );
 
 INSERT INTO source (code, name, base_url, method, reliability_score, is_canonical) VALUES
-    ('cvm_dados_abertos', 'CVM Dados Abertos',    'https://dados.cvm.gov.br',                           'csv',        1.00, TRUE),
-    ('cvm_sdi',           'CVM SDI (Documentos)', 'https://www.rad.cvm.gov.br',                         'html',       0.95, TRUE),
-    ('b3_listings',       'B3 FII Listings',      'https://sistemaswebb3-listados.b3.com.br',           'api',        0.95, TRUE),
-    ('anbima',            'ANBIMA',               'https://data.anbima.com.br',                         'api',        0.90, FALSE),
-    ('bcb_sgs',           'BCB SGS',              'https://api.bcb.gov.br',                             'api',        1.00, FALSE),
-    ('bcb_focus',         'BCB Relatório Focus',  'https://olinda.bcb.gov.br',                          'api',        1.00, FALSE),
-    ('fundamentus',       'Fundamentus FII',      'https://www.fundamentus.com.br',                    'html',       0.85, FALSE),
-    ('funds_explorer',    'Funds Explorer',       'https://www.fundsexplorer.com.br',                   'playwright', 0.80, FALSE),
-    ('status_invest',     'Status Invest',        'https://statusinvest.com.br',                        'playwright', 0.75, FALSE),
-    ('fiis_com_br',       'FIIs.com.br',          'https://fiis.com.br',                                'html',       0.75, FALSE),
-    ('btg_digital',       'BTG Digital',          'https://www.btgpactual.com',                         'jina',       0.70, FALSE),
-    ('clube_fii',         'Clube FII',            'https://www.clubefii.com.br',                        'playwright', 0.70, FALSE)
+    -- Canonical: primary offer data, documents and fund registration
+    ('cvm_dados_abertos',   'CVM Dados Abertos',           'https://dados.cvm.gov.br',                      'csv',        1.00, TRUE),
+    ('cvm_fundos_portal',   'CVM Portal de Fundos',        'https://fundos.cvm.gov.br',                     'html',       0.95, TRUE),
+    -- Canonical: market infrastructure
+    ('b3_listings',         'B3 FII Listings',             'https://sistemaswebb3-listados.b3.com.br',      'api',        0.95, TRUE),
+    -- Canonical: macro indicators (BCB = Selic; IBGE via BCB = IPCA; B3/CETIP via BCB = CDI)
+    ('bcb_sgs',             'BCB SGS',                     'https://api.bcb.gov.br',                        'api',        1.00, FALSE),
+    ('bcb_focus',           'BCB Relatório Focus',         'https://olinda.bcb.gov.br',                     'api',        1.00, FALSE),
+    -- Secondary: market data enrichment (DY, P/VP, vacância, preço)
+    ('fundamentus',         'Fundamentus FII',             'https://www.fundamentus.com.br',                'html',       0.85, FALSE),
+    ('funds_explorer',      'Funds Explorer',              'https://www.fundsexplorer.com.br',              'playwright', 0.80, FALSE),
+    ('status_invest',       'Status Invest',               'https://statusinvest.com.br',                   'playwright', 0.80, FALSE),
+    ('fiis_com_br',         'FIIs.com.br',                 'https://fiis.com.br',                           'html',       0.75, FALSE),
+    -- B3 IFIX index (Yahoo Finance mirror — unofficial, a validar if B3 publishes stable API)
+    ('b3_ifix',             'B3 IFIX (via Yahoo Finance)', 'https://finance.yahoo.com',                     'api',        0.90, FALSE)
 ON CONFLICT (code) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS extraction_run (
@@ -283,3 +295,61 @@ CREATE TABLE IF NOT EXISTS embedding (
 CREATE INDEX IF NOT EXISTS idx_embedding_offer ON embedding(offer_id);
 -- ANN index: create AFTER loading data (needs rows to build lists)
 -- CREATE INDEX ON embedding USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- DEFERRED DDL — guarded DO block (safe to re-run on pre-migration databases)
+--
+-- This block adds FK constraints and indices for columns that were introduced
+-- alongside this schema. On existing databases those columns don't exist yet
+-- (migration 002 adds them via ALTER TABLE ADD COLUMN IF NOT EXISTS), so each
+-- statement is guarded by an existence check to avoid errors on re-run.
+-- ───────────────────────────────────────────────────────────────────────────
+
+DO $$
+BEGIN
+    -- vehicle.gestor_id FK
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'vehicle' AND column_name = 'gestor_id'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_vehicle_gestor'
+    ) THEN
+        ALTER TABLE vehicle ADD CONSTRAINT fk_vehicle_gestor
+            FOREIGN KEY (gestor_id) REFERENCES participant(id);
+    END IF;
+
+    -- vehicle.administrador_id FK
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'vehicle' AND column_name = 'administrador_id'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_vehicle_administrador'
+    ) THEN
+        ALTER TABLE vehicle ADD CONSTRAINT fk_vehicle_administrador
+            FOREIGN KEY (administrador_id) REFERENCES participant(id);
+    END IF;
+
+    -- vehicle indices for new columns
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='vehicle' AND column_name='fund_type')
+       AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='idx_vehicle_fund_type') THEN
+        EXECUTE 'CREATE INDEX idx_vehicle_fund_type ON vehicle(fund_type)';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='vehicle' AND column_name='gestor_id')
+       AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='idx_vehicle_gestor') THEN
+        EXECUTE 'CREATE INDEX idx_vehicle_gestor ON vehicle(gestor_id)';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='vehicle' AND column_name='administrador_id')
+       AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='idx_vehicle_administrador') THEN
+        EXECUTE 'CREATE INDEX idx_vehicle_administrador ON vehicle(administrador_id)';
+    END IF;
+
+    -- offer indices for new columns
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='offer' AND column_name='is_ipo')
+       AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='idx_offer_is_ipo') THEN
+        EXECUTE 'CREATE INDEX idx_offer_is_ipo ON offer(is_ipo)';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='offer' AND column_name='distribution_rite')
+       AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='idx_offer_distribution_rite') THEN
+        EXECUTE 'CREATE INDEX idx_offer_distribution_rite ON offer(distribution_rite)';
+    END IF;
+END $$;

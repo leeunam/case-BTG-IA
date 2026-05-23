@@ -9,15 +9,18 @@ import pandas as pd
 from src.db.connection import get_conn
 from src.pipeline.collectors.base import BaseCollector
 
-_B3_FII_URL = (
-    "https://sistemaswebb3-listados.b3.com.br"
-    "/fundsProxy/fundsCall/GetListedFundsSummary/FII"
-)
+# B3 changed their API endpoint in 2025/2026 — multiple URLs to try in order
+_B3_FII_URLS = [
+    "https://sistemaswebb3-listados.b3.com.br/fundsProxy/fundsCall/GetListedFundsSummary/FII",
+    "https://sistemaswebb3-listados.b3.com.br/fundsProxy/fundsCall/GetListedFundsByTypeFund/FII",
+    "https://sistemaswebb3-listados.b3.com.br/fundsProxy/fundsCall/GetListedFunds/FII",
+]
 
 _HEADERS = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0",
+    "Accept": "application/json, */*",
     "Referer": "https://www.b3.com.br/",
+    "Accept-Language": "pt-BR,pt;q=0.9",
 }
 
 
@@ -39,20 +42,28 @@ class B3Collector(BaseCollector):
         return {"collected": len(funds), "new": new, "updated": updated}
 
     def _fetch(self) -> list[dict]:
-        resp = httpx.get(_B3_FII_URL, headers=_HEADERS, timeout=30, follow_redirects=True)
-        resp.raise_for_status()
+        for url in _B3_FII_URLS:
+            try:
+                resp = httpx.get(url, headers=_HEADERS, timeout=20, follow_redirects=True)
+                if resp.status_code != 200:
+                    print(f"  B3 endpoint {url.split('/')[-1][:40]} → {resp.status_code}, trying next...")
+                    continue
 
-        data = resp.json()
+                data = resp.json()
+                if isinstance(data, list) and data:
+                    print(f"  B3 endpoint OK: {url.split('/')[-1][:40]}")
+                    return data
+                for key in ("results", "data", "funds", "content"):
+                    if isinstance(data, dict) and key in data and data[key]:
+                        print(f"  B3 endpoint OK (key={key}): {url.split('/')[-1][:40]}")
+                        return data[key]
+            except Exception as exc:
+                print(f"  B3 endpoint error ({exc.__class__.__name__}): {url.split('/')[-1][:40]}")
 
-        if isinstance(data, list):
-            return data
-
-        # Defensive: handle wrapped responses
-        for key in ("results", "data", "funds", "content"):
-            if isinstance(data, dict) and key in data:
-                return data[key]
-
-        print(f"  Warning: unexpected B3 response format. Keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+        print(
+            "  Warning: all B3 endpoints failed — B3 API may have changed. "
+            "FII listing data will rely on CVM + Fundamentus collectors."
+        )
         return []
 
     def _upsert_vehicles(self, df: pd.DataFrame) -> tuple[int, int]:
