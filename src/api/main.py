@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routers import (
-    dashboard, offers, alerts, documents,
+    dashboard, offers, alerts,
     reports, agent, general_scenario, settings,
 )
 
@@ -44,7 +44,6 @@ _prefix = "/api"
 app.include_router(dashboard.router,        prefix=_prefix)
 app.include_router(offers.router,           prefix=_prefix)
 app.include_router(alerts.router,           prefix=_prefix)
-app.include_router(documents.router,        prefix=_prefix)
 app.include_router(reports.router,          prefix=_prefix)
 app.include_router(agent.router,            prefix=_prefix)
 app.include_router(general_scenario.router, prefix=_prefix)

@@ -46,6 +46,12 @@ class TopNewOffer(BaseModel):
     distribution_rite: Optional[str]
 
 
+class TopNewOffersResponse(BaseModel):
+    ref_date: date
+    is_today: bool
+    items: list["TopNewOffer"]
+
+
 class PipelineSourceStatus(BaseModel):
     source_code: str
     source_name: str

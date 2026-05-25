@@ -50,19 +50,6 @@ export interface CompareOffer {
   indicators: IndicatorData
 }
 
-// ─── Documents ───────────────────────────────────────────────────────────────
-
-export interface DocumentItem {
-  id: number
-  offer_id: number | null
-  type: string
-  title: string
-  source_url: string | null
-  download_url: string | null
-  available: boolean
-  extraction_status: string
-}
-
 // ─── Alerts ──────────────────────────────────────────────────────────────────
 
 export interface Alert {
@@ -133,6 +120,12 @@ export interface TopNewOffer {
   coordinator: string | null
   registered_at: string | null
   distribution_rite: string | null
+}
+
+export interface TopNewOffersResponse {
+  ref_date: string
+  is_today: boolean
+  items: TopNewOffer[]
 }
 
 export interface PipelineSourceStatus {
@@ -228,4 +221,4 @@ export interface ReportJob {
 
 // ─── Period ──────────────────────────────────────────────────────────────────
 
-export type Period = '1d' | '7d' | '15d' | '1m'
+export type Period = '7d' | '15d' | '1m'

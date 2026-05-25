@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from src.api.deps import DbConn, Period
 from src.api.schemas.dashboard import (
     DailyInsight, VolumeByPeriod, RankingItem,
-    IpoVsFollowOn, TopNewOffer, PipelineHealth, PipelineSourceStatus,
+    IpoVsFollowOn, TopNewOffer, TopNewOffersResponse, PipelineHealth, PipelineSourceStatus,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -99,9 +99,15 @@ def get_ipo_vs_followon(db: DbConn, dates: Period, period: str = Query("1m")):
     )
 
 
-@router.get("/top-new-offers", response_model=list[TopNewOffer])
+@router.get("/top-new-offers", response_model=TopNewOffersResponse)
 def get_top_new_offers(db: DbConn, limit: int = Query(5)):
     today = date.today()
+    # Use the most recent date that has registered offers; fall back from today
+    last_active = db.execute(
+        "SELECT MAX(registered_at) FROM offer"
+    ).fetchone()[0] or today
+    ref = today if last_active >= today else last_active
+
     rows = db.execute("""
         SELECT
             o.id, COALESCE(v.name, 'Desconhecido'), v.ticker,
@@ -114,13 +120,15 @@ def get_top_new_offers(db: DbConn, limit: int = Query(5)):
         WHERE o.registered_at = %s
         ORDER BY o.total_volume DESC NULLS LAST
         LIMIT %s
-    """, (today, limit)).fetchall()
-    return [
+    """, (ref, limit)).fetchall()
+
+    items = [
         TopNewOffer(id=r[0], name=r[1], ticker=r[2], offer_type=r[3],
                     total_volume=r[4] and float(r[4]), coordinator=r[5],
                     registered_at=r[6], distribution_rite=r[7])
         for r in rows
     ]
+    return TopNewOffersResponse(ref_date=ref, is_today=(ref == today), items=items)
 
 
 @router.get("/pipeline-health", response_model=PipelineHealth)
@@ -134,6 +142,7 @@ def get_pipeline_health(db: DbConn):
              WHERE er2.source_id = s.id ORDER BY er2.started_at DESC LIMIT 1) AS last_status
         FROM source s
         LEFT JOIN extraction_run er ON er.source_id = s.id
+        WHERE s.code NOT IN ('fiis_com_br', 'cvm_fundos_portal')
         GROUP BY s.id, s.code, s.name
         ORDER BY s.code
     """).fetchall()

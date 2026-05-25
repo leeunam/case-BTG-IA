@@ -6,6 +6,12 @@ import { fmtVolume } from '../../lib/formatters'
 import { OFFER_TYPE_LABELS, DISTRIBUTION_RITE_LABELS } from '../../lib/constants'
 import { Card, Badge, LoadingState, EmptyState } from '../shared'
 
+function fmtRefDate(isoDate: string, isToday: boolean): string {
+  if (isToday) return 'hoje'
+  const d = new Date(isoDate + 'T12:00:00')
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+}
+
 export default function TopNewOffersCard() {
   const { data, isLoading } = useQuery({
     queryKey: qk.topNewOffers(),
@@ -13,24 +19,32 @@ export default function TopNewOffersCard() {
     refetchInterval: 5 * 60_000,
   })
 
+  const items = Array.isArray(data) ? [] : (data?.items ?? [])
+  const refDate = Array.isArray(data) ? null : data?.ref_date ?? null
+  const isToday = Array.isArray(data) ? false : (data?.is_today ?? true)
+
+  const title = refDate
+    ? `Novas ofertas — ${fmtRefDate(refDate, isToday)}`
+    : 'Novas ofertas hoje'
+
   return (
     <Card className="p-5">
       <div className="flex items-center gap-2 mb-4">
         <Zap className="w-4 h-4 text-amber-500" />
         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Novas ofertas hoje
+          {title}
         </span>
       </div>
 
       {isLoading && <LoadingState />}
 
-      {!isLoading && (!data || data.length === 0) && (
-        <EmptyState message="Nenhuma oferta nova hoje." />
+      {!isLoading && items.length === 0 && (
+        <EmptyState message="Nenhuma oferta registrada." />
       )}
 
-      {data && data.length > 0 && (
+      {items.length > 0 && (
         <ul className="flex flex-col gap-3">
-          {data.map(offer => (
+          {items.map(offer => (
             <li key={offer.id} className="flex flex-col gap-1 pb-3 border-b border-gray-100 dark:border-gray-800 last:border-0 last:pb-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[180px]">

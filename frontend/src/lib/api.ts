@@ -1,8 +1,8 @@
 import type {
-  Offer, OfferList, IndicatorData, CompareOffer, DocumentItem,
+  Offer, OfferList, IndicatorData, CompareOffer,
   Alert, AlertList, AlertSummary,
   DailyInsight, VolumeByPeriod, RankingItem, IpoVsFollowOn,
-  TopNewOffer, PipelineHealth, MacroKpi, IpcaMonthlyPoint,
+  TopNewOffer, TopNewOffersResponse, PipelineHealth, MacroKpi, IpcaMonthlyPoint,
   PlayerItem, TopPlayerInsight, OffersByCoordinator, FundVolume,
   Conversation, ReportJob, Period,
 } from '../types'
@@ -31,6 +31,11 @@ async function patch<T>(path: string, body?: unknown): Promise<T> {
   return res.json()
 }
 
+async function del(path: string): Promise<void> {
+  const res = await fetch(BASE + path, { method: 'DELETE' })
+  if (!res.ok && res.status !== 204) throw new Error(res.statusText)
+}
+
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(BASE + path, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -46,14 +51,13 @@ export const api = {
   getVolume:         (p: Period)     => get<VolumeByPeriod>('/dashboard/volume', { period: p }),
   getRanking:        (p: Period)     => get<RankingItem[]>('/dashboard/ranking', { period: p }),
   getIpoVsFO:        (p: Period)     => get<IpoVsFollowOn>('/dashboard/ipo-vs-followon', { period: p }),
-  getTopNewOffers:   ()              => get<TopNewOffer[]>('/dashboard/top-new-offers'),
+  getTopNewOffers:   ()              => get<TopNewOffersResponse>('/dashboard/top-new-offers'),
   getPipelineHealth: ()              => get<PipelineHealth>('/dashboard/pipeline-health'),
 
   // ─── Offers ────────────────────────────────────────────────────────────────
   getOffers: (p: Period, status: string, page: number, pageSize = 50) =>
     get<OfferList>('/offers', { period: p, status, page, page_size: pageSize }),
   getIndicators: (id: number) => get<IndicatorData>(`/offers/${id}/indicators`),
-  getDocuments:  (id: number) => get<DocumentItem[]>(`/offers/${id}/documents`),
   compareOffers: (ids: number[]) =>
     get<CompareOffer[]>('/offers/compare', { offer_ids: ids.join(',') }),
 
@@ -74,6 +78,7 @@ export const api = {
   // ─── Agent ─────────────────────────────────────────────────────────────────
   getConversations:   ()              => get<Conversation[]>('/agent/conversations'),
   createConversation: ()              => post<Conversation>('/agent/conversations'),
+  deleteConversation: (id: string)   => del(`/agent/conversations/${id}`),
 
   // ─── Reports ───────────────────────────────────────────────────────────────
   createReport:  (offerId: number)  => post<ReportJob>(`/reports/offers/${offerId}`),

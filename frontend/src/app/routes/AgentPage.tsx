@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Send, Plus, Bot, User, Wrench, Loader2 } from 'lucide-react'
+import { Send, Plus, Bot, User, Wrench, Loader2, Trash2 } from 'lucide-react'
 import { api } from '../../lib/api'
 import { qk } from '../../lib/queryKeys'
 import { fmtDateTime } from '../../lib/formatters'
@@ -27,6 +27,17 @@ export default function AgentPage() {
       qc.invalidateQueries({ queryKey: qk.conversations() })
       setActiveConv(conv)
       setMessages([])
+    },
+  })
+
+  const deleteConv = useMutation({
+    mutationFn: (id: string) => api.deleteConversation(id),
+    onSuccess: (_, deletedId) => {
+      qc.invalidateQueries({ queryKey: qk.conversations() })
+      if (activeConv?.id === deletedId) {
+        setActiveConv(null)
+        setMessages([])
+      }
     },
   })
 
@@ -132,19 +143,28 @@ export default function AgentPage() {
             <EmptyState message="Nenhuma conversa." />
           )}
           {conversations?.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => { setActiveConv(conv); setMessages([]) }}
-              className={clsx(
-                'w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors mb-1',
-                activeConv?.id === conv.id
-                  ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
-              )}
-            >
-              <p className="truncate font-medium">{conv.title}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{fmtDateTime(conv.last_message_at)}</p>
-            </button>
+            <div key={conv.id} className="group relative mb-1">
+              <button
+                onClick={() => { setActiveConv(conv); setMessages([]) }}
+                className={clsx(
+                  'w-full text-left px-3 py-2.5 pr-8 rounded-lg text-sm transition-colors',
+                  activeConv?.id === conv.id
+                    ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+                )}
+              >
+                <p className="truncate font-medium">{conv.title}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{fmtDateTime(conv.last_message_at)}</p>
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); deleteConv.mutate(conv.id) }}
+                disabled={deleteConv.isPending}
+                title="Excluir conversa"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))}
         </div>
       </aside>

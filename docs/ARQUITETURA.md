@@ -142,7 +142,7 @@ Base: `/api` · Swagger UI: `GET /docs`
 | Router | Prefix | Responsabilidade |
 |---|---|---|
 | `dashboard` | `/api/dashboard` | Insight diário, volume, ranking, pipeline health |
-| `offers` | `/api/offers` | Listagem paginada, indicadores, documentos, comparação |
+| `offers` | `/api/offers` | Listagem paginada, indicadores, comparação |
 | `alerts` | `/api/alerts` | Alertas, mark-as-seen |
 | `agent` | `/api/agent` | Conversas + streaming SSE |
 | `reports` | `/api/reports` | Jobs assíncronos de PDF |

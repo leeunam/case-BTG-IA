@@ -14,6 +14,7 @@ import type { Period } from '../../types'
 
 const COORD_COLORS = ['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#65a30d','#be185d']
 
+
 export default function GeneralScenarioPage() {
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD)
 
@@ -34,86 +35,108 @@ export default function GeneralScenarioPage() {
       </div>
 
       {/* Macro KPI comparison */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {['SELIC_META','CDI','IPCA_PROJ','IFIX'].map(code => {
           const k = kpiMap[code]
           return (
-            <Card key={code} className="p-4">
+            <Card key={code} className="p-5 flex flex-col items-center justify-center text-center min-h-[100px]">
               <p className="text-xs text-gray-500 font-medium">{k?.label ?? code}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
                 {kpisLoading ? '—' : k?.display_value ?? 'N/D'}
               </p>
-              <p className="text-xs text-gray-400 mt-1 truncate">{k?.source ?? ''}</p>
-              {k?.metric_date && <p className="text-xs text-gray-400">{fmtDate(k.metric_date)}</p>}
+              <p className="text-xs text-gray-400 mt-1.5 truncate max-w-full">{k?.source ?? ''}</p>
+              {k?.metric_date && <p className="text-xs text-gray-400 mt-0.5">{fmtDate(k.metric_date)}</p>}
             </Card>
           )
         })}
       </div>
 
       {/* CDI detail + Selic projetada */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {['CDI','CDI_PROJ','IPCA','IPCA_PROJ'].map(code => {
           const k = kpiMap[code]
           const labels: Record<string,string> = { CDI: 'CDI diário (anualizado)', CDI_PROJ: 'Selic projetada (Focus)', IPCA: 'IPCA mensal', IPCA_PROJ: 'IPCA projetado (Focus)' }
           return (
-            <Card key={code} className="p-3">
+            <Card key={code} className="p-5 flex flex-col items-center justify-center text-center">
               <p className="text-xs text-gray-500">{labels[code] ?? code}</p>
-              <p className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1">{k?.display_value ?? 'N/D'}</p>
-              <p className="text-xs text-gray-400 truncate mt-0.5">{k?.source}</p>
+              <p className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-2">{k?.display_value ?? 'N/D'}</p>
+              <p className="text-xs text-gray-400 truncate mt-1.5 max-w-full">{k?.source}</p>
             </Card>
           )
         })}
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* IPCA monthly */}
-        <Card className="p-5">
+        <Card className="p-6">
           <SectionHeader title="IPCA mensal acumulado" subtitle="Fonte: IBGE via BCB/SGS série 433" />
           {!ipca ? <LoadingState /> : (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={ipca.slice(-12)}>
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false}
-                  tickFormatter={v => v.substring(5)} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-                <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`, 'IPCA']} />
-                <Bar dataKey="value" fill="#2563eb" radius={[3,3,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="mt-4">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={ipca.slice(-12)}>
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false}
+                    tickFormatter={v => v.substring(5)} />
+                  <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                  <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`, 'IPCA']} />
+                  <Bar dataKey="value" fill="#2563eb" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </Card>
 
         {/* Offers by coordinator */}
-        <Card className="p-5">
+        <Card className="p-6">
           <SectionHeader title="Distribuição de ofertas por coordenador" subtitle="Número de ofertas no período" />
           {!byCoord ? <LoadingState /> : byCoord.length === 0 ? <EmptyState /> : (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={byCoord.slice(0,10)} layout="vertical">
-                <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="coordinator" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={100} />
-                <Tooltip formatter={(v: number) => [v, 'Ofertas']} />
-                <Bar dataKey="count" radius={[0,3,3,0]}>
-                  {byCoord.slice(0,10).map((_, i) => <Cell key={i} fill={COORD_COLORS[i % COORD_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="mt-4">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={byCoord.slice(0,10)} layout="vertical">
+                  <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    type="category" dataKey="coordinator"
+                    axisLine={false} tickLine={false} width={140}
+                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    tickFormatter={(v: string) => v.length > 20 ? v.slice(0, 20) + '…' : v}
+                  />
+                  <Tooltip
+                    formatter={(v: number) => [v, 'Ofertas']}
+                    labelFormatter={(label) => String(label)}
+                  />
+                  <Bar dataKey="count" radius={[0,3,3,0]}>
+                    {byCoord.slice(0,10).map((_, i) => <Cell key={i} fill={COORD_COLORS[i % COORD_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </Card>
       </div>
 
       {/* Top funds volume */}
-      <Card className="p-5">
+      <Card className="p-6">
         <SectionHeader title="Volume por fundo (Top 10)" subtitle="Vol. autorizado no período — Fonte: CVM" />
         {!topFunds ? <LoadingState /> : topFunds.length === 0 ? <EmptyState /> : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={topFunds.slice(0,10)} layout="vertical">
-              <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false}
-                tickFormatter={v => fmtVolume(v)} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={130} />
-              <Tooltip formatter={(v: number) => [fmtVolume(v), 'Vol. autorizado']} />
-              <Bar dataKey="total_volume" fill="#7c3aed" radius={[0,3,3,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="mt-4">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={topFunds.slice(0,10)} layout="vertical">
+                <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false}
+                  tickFormatter={v => fmtVolume(v)} />
+                <YAxis
+                  type="category" dataKey="name"
+                  axisLine={false} tickLine={false} width={140}
+                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tickFormatter={(v: string) => v.length > 20 ? v.slice(0, 20) + '…' : v}
+                />
+                <Tooltip
+                  formatter={(v: number) => [fmtVolume(v), 'Vol. autorizado']}
+                  labelFormatter={(label) => String(label)}
+                />
+                <Bar dataKey="total_volume" fill="#7c3aed" radius={[0,3,3,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </Card>
 

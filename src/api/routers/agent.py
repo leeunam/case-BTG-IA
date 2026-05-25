@@ -40,6 +40,17 @@ def create_conversation(db: DbConn):
                             created_at=row[3], last_message_at=row[4])
 
 
+@router.delete("/conversations/{conversation_id}", status_code=204)
+def delete_conversation(conversation_id: str, db: DbConn):
+    result = db.execute(
+        "DELETE FROM agent_conversation WHERE id = %s RETURNING id",
+        (conversation_id,),
+    ).fetchone()
+    db.commit()
+    if not result:
+        raise HTTPException(404, "Conversation not found")
+
+
 @router.post("/messages")
 def send_message(payload: MessageRequest, db: DbConn):
     """Stream agent response via Server-Sent Events."""

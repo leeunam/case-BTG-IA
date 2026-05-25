@@ -16,7 +16,7 @@ Sem recomendação de investimento. Sem dados proprietários. Tudo de fontes pú
 
 ## O que entrega
 
-- Tabela de ofertas em andamento com status, coordenador, volume, gestor e documentos
+- Tabela de ofertas em andamento com status, coordenador, volume e gestor
 - Separação clara entre IPO (fundo novo, sem histórico) e follow-on (fundo existente)
 - Indicadores de mercado — DY, P/VP, vacância, volume diário — apenas quando existem, com fonte explícita
 - Contexto macroeconômico — Selic, CDI, IPCA, IFIX — atualizado diariamente

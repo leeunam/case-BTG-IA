@@ -51,30 +51,41 @@ export default function DashboardPage() {
       {/* Volume + IPO vs FO + Ranking */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Volume card */}
-        <Card className="p-5">
-          <p className="text-xs text-gray-500 font-medium mb-1">Vol. autorizado no período</p>
+        <Card className="p-6 flex flex-col items-center justify-center text-center min-h-[130px]">
+          <p className="text-xs text-gray-500 font-medium mb-2">Vol. autorizado no período</p>
           <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {fmtVolume(volume?.total_volume ?? null)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">{volume?.offer_count ?? '—'} ofertas</p>
+          <p className="text-xs text-gray-400 mt-2">{volume?.offer_count ?? '—'} ofertas</p>
         </Card>
 
         {/* IPO vs FO */}
-        <Card className="p-5">
-          <p className="text-xs text-gray-500 font-medium mb-3">IPO vs Follow-on</p>
-          <ResponsiveContainer width="100%" height={90}>
-            <BarChart data={ipoFoData} barGap={8}>
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis hide />
-              <Tooltip
-                formatter={(v: number) => [fmtVolume(v), 'Vol. autorizado']}
-                contentStyle={{ fontSize: 12 }}
-              />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {ipoFoData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <Card className="p-5 flex flex-col min-h-[160px]">
+          <p className="text-xs text-gray-500 font-medium text-center mb-1">IPO vs Follow-on</p>
+          <div className="flex-1 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height={130}>
+              <BarChart data={ipoFoData} barCategoryGap="30%" margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const d = payload[0].payload as typeof ipoFoData[0]
+                    return (
+                      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-xs shadow-lg">
+                        <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{d.name}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Vol: <span className="font-medium text-gray-800 dark:text-gray-200">{fmtVolume(d.value)}</span></p>
+                        <p className="text-gray-600 dark:text-gray-400 mt-0.5">Qtd: <span className="font-medium text-gray-800 dark:text-gray-200">{d.count} oferta{d.count !== 1 ? 's' : ''}</span></p>
+                      </div>
+                    )
+                  }}
+                />
+                <Bar dataKey="value" radius={[5, 5, 0, 0]} maxBarSize={90}>
+                  {ipoFoData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </Card>
 
         {/* Top 5 new offers */}

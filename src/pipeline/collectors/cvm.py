@@ -32,14 +32,17 @@ def _cutoff_date():
     return date.today() - timedelta(days=30)
 
 # Status mapping for oferta_resolucao_160 Status_Requerimento values
+# Actual CVM values confirmed from dados.cvm.gov.br (2025-05):
+#   "Registro Concedido", "Oferta Encerrada", "Registro Caducado",
+#   "Oferta Revogada", "Aguardando Bookbuilding", "Requerimento Expirado", "Oferta Suspensa"
 _STATUS_MAP = {
-    "DEFERIDO":    "active",
-    "ENCERRADO":   "closed",
-    "CANCELADO":   "cancelled",
-    "INDEFERIDO":  "cancelled",
-    "PENDENTE":    "pending",
-    "EM ANÁLISE":  "pending",
-    "EM ANALISE":  "pending",
+    "REGISTRO CONCEDIDO":       "active",
+    "AGUARDANDO BOOKBUILDING":  "pending",
+    "OFERTA SUSPENSA":          "pending",
+    "OFERTA ENCERRADA":         "closed",
+    "REGISTRO CADUCADO":        "cancelled",
+    "OFERTA REVOGADA":          "cancelled",
+    "REQUERIMENTO EXPIRADO":    "cancelled",
 }
 
 
@@ -91,10 +94,7 @@ def _derive_status_160(raw_status: str | None) -> str:
     if not raw_status:
         return "unknown"
     normalized = raw_status.strip().upper()
-    for key, val in _STATUS_MAP.items():
-        if key in normalized:
-            return val
-    return "unknown"
+    return _STATUS_MAP.get(normalized, "unknown")
 
 
 def _is_restricted(rito: str | None) -> bool:
@@ -122,7 +122,7 @@ class CVMCollector(BaseCollector):
 
         # Filter to last 30 days — CSV is always downloaded in full, this limits DB inserts
         df_fii_dist = self._filter_by_date(df_fii_dist, "Data_Registro_Oferta")
-        df_fii_res  = self._filter_by_date(df_fii_res,  "Data_Protocolo")
+        df_fii_res  = self._filter_by_date(df_fii_res,  "Data_Registro")
 
         print(f"  FII offers: {len(df_fii_dist):,} (distribuição) + {len(df_fii_res):,} (resolução 160)")
 
@@ -411,6 +411,14 @@ class CVMCollector(BaseCollector):
                 raw_status = _clean_str(row.get("Status_Requerimento"))
                 status = _derive_status_160(raw_status)
 
+                # Emissao=1 → IPO (first issuance), >1 → Follow-on
+                emissao_raw = row.get("Emissao")
+                try:
+                    offer_sequence = int(emissao_raw) if pd.notna(emissao_raw) else None
+                except (ValueError, TypeError):
+                    offer_sequence = None
+                is_ipo = (offer_sequence == 1) if offer_sequence is not None else None
+
                 bookbuilding_raw = _clean_str(row.get("Bookbuilding"))
                 bookbuilding = (bookbuilding_raw == "S") if bookbuilding_raw else None
 
@@ -429,7 +437,7 @@ class CVMCollector(BaseCollector):
                 offer_data = (
                     vehicle_id, st_id, cvm_reg,
                     _clean_str(row.get("Numero_Processo")),
-                    status,
+                    status, is_ipo, offer_sequence,
                     _to_date(row.get("Data_Registro")),
                     _to_date(row.get("Data_Encerramento")),
                     _to_date(row.get("Data_requerimento")),
@@ -452,11 +460,12 @@ class CVMCollector(BaseCollector):
                         """
                         INSERT INTO offer
                             (vehicle_id, security_type_id, cvm_registration,
-                             cvm_process_number, status, started_at, ends_at, registered_at,
+                             cvm_process_number, status, is_ipo, offer_sequence,
+                             started_at, ends_at, registered_at,
                              total_volume, unit_price, total_units, distribution_regime,
                              bookbuilding, target_audience,
                              financial_terms_available, extra)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, TRUE, %s)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, TRUE, %s)
                         RETURNING id
                         """,
                         offer_data,

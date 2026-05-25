@@ -129,6 +129,10 @@ export default function IndicatorsDrawer({ offer, open, onClose }: Props) {
     },
   ]
 
+  const hasMarketData = !!(data?.snapshot_date || data?.dy_12m || data?.pvp || data?.market_price)
+  const offerRows = rows.slice(0, 4)
+  const marketRows = rows.slice(4)
+
   return (
     <Drawer open={open} onClose={onClose} title={`Indicadores — ${offer?.name ?? ''}`}>
       {isLoading && <LoadingState />}
@@ -137,16 +141,16 @@ export default function IndicatorsDrawer({ offer, open, onClose }: Props) {
         <>
           {isIpo && (
             <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs">
-              ⚠️ IPO: indicadores de mercado são indisponíveis, pois o fundo não possui histórico realizado.
+              ⚠️ IPO: indicadores de mercado são indisponíveis — fundo sem histórico realizado.
             </div>
           )}
 
-          <div className="text-xs text-gray-400 dark:text-gray-600 mb-3">
-            Snapshot de {fmtDate(data.snapshot_date)} · Fonte secundária: {data.source}
-          </div>
-
-          <dl className="flex flex-col gap-3">
-            {rows.map(row => (
+          {/* Offer data section */}
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+            Dados da oferta
+          </p>
+          <dl className="flex flex-col gap-3 mb-5">
+            {offerRows.map(row => (
               <div key={row.label} className="flex flex-col gap-0.5">
                 <dt className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={row.tooltip}>
                   {row.label}
@@ -157,7 +161,39 @@ export default function IndicatorsDrawer({ offer, open, onClose }: Props) {
             ))}
           </dl>
 
-          <p className="mt-6 text-xs text-gray-400 dark:text-gray-600 border-t border-gray-100 dark:border-gray-800 pt-4">
+          {/* Market data section */}
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                Indicadores de mercado secundário
+              </p>
+              {hasMarketData && data.snapshot_date && (
+                <span className="text-xs text-gray-400 dark:text-gray-600">
+                  Snapshot: {fmtDate(data.snapshot_date)} · {data.source}
+                </span>
+              )}
+            </div>
+
+            {!hasMarketData && !isIpo && (
+              <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-xs mb-3">
+                Dados de mercado secundário ainda não disponíveis para este fundo. As informações serão exibidas assim que houver cotações registradas.
+              </div>
+            )}
+
+            <dl className="flex flex-col gap-3">
+              {marketRows.map(row => (
+                <div key={row.label} className="flex flex-col gap-0.5">
+                  <dt className="text-xs text-gray-500 dark:text-gray-400 font-medium" title={row.tooltip}>
+                    {row.label}
+                    {row.tooltip && <span className="ml-1 cursor-help">ℹ</span>}
+                  </dt>
+                  <dd className="text-sm text-gray-900 dark:text-gray-100">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <p className="mt-6 text-xs text-gray-400 dark:text-gray-600 border-t border-gray-100 dark:border-gray-800 pt-4 leading-relaxed">
             ⚠️ Indicadores de mercado secundário (DY, P/VP, preço) são do Fundamentus e não representam termos da oferta primária.
             Este painel é informativo. Não constitui recomendação de investimento.
           </p>

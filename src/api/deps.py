@@ -18,17 +18,16 @@ DbConn = Annotated[psycopg.Connection, Depends(get_db)]
 
 def parse_period(period: str = Query("1m")) -> tuple[date, date]:
     """Convert period string to (start_date, end_date) tuple."""
-    end = date.today()
+    today = date.today()
     mapping = {
-        "1d":  timedelta(days=1),
         "7d":  timedelta(days=7),
         "15d": timedelta(days=15),
         "1m":  timedelta(days=30),
     }
     delta = mapping.get(period)
     if not delta:
-        raise HTTPException(status_code=400, detail=f"Invalid period '{period}'. Use 1d|7d|15d|1m")
-    return end - delta, end
+        raise HTTPException(status_code=400, detail=f"Invalid period '{period}'. Use 7d|15d|1m")
+    return today - delta, today
 
 
 Period = Annotated[tuple[date, date], Depends(parse_period)]

@@ -151,15 +151,15 @@ export function Drawer({
     <>
       {open && <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} />}
       <aside className={clsx(
-        'fixed top-0 right-0 h-full w-full max-w-md z-50 bg-white dark:bg-gray-900 shadow-2xl',
-        'transform transition-transform duration-300 ease-in-out',
+        'fixed top-0 right-0 h-screen w-full max-w-md z-50 bg-white dark:bg-gray-900 shadow-2xl',
+        'flex flex-col transform transition-transform duration-300 ease-in-out',
         open ? 'translate-x-0' : 'translate-x-full',
       )}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl">&times;</button>
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 pr-4 leading-snug">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl shrink-0">&times;</button>
         </div>
-        <div className="p-5 overflow-y-auto h-[calc(100vh-65px)]">{children}</div>
+        <div className="flex-1 p-5 overflow-y-auto">{children}</div>
       </aside>
     </>
   )

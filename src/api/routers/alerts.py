@@ -69,7 +69,7 @@ def list_alerts(
         LEFT JOIN offer o ON o.id = al.offer_id
         LEFT JOIN vehicle v ON v.id = COALESCE(al.vehicle_id, o.vehicle_id)
         WHERE al.created_at::date BETWEEN %s AND %s
-        ORDER BY al.created_at DESC
+        ORDER BY al.is_read ASC, al.created_at DESC
         LIMIT %s OFFSET %s
     """, (start, end, page_size, offset)).fetchall()
 

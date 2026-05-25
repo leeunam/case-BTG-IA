@@ -4,7 +4,7 @@ import {
   useReactTable, getCoreRowModel, flexRender,
   createColumnHelper,
 } from '@tanstack/react-table'
-import { BarChart2, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BarChart2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { api } from '../../lib/api'
 import { qk } from '../../lib/queryKeys'
 import { fmtVolume, fmtDate } from '../../lib/formatters'
@@ -13,7 +13,6 @@ import {
   PeriodFilter, StatusFilter, Badge, LoadingState, ErrorState, EmptyState,
 } from '../shared'
 import IndicatorsDrawer from './IndicatorsDrawer'
-import DocumentsModal from './DocumentsModal'
 import SelectedOffersActionBar from './SelectedOffersActionBar'
 import type { Offer, Period } from '../../types'
 import { clsx } from 'clsx'
@@ -21,19 +20,26 @@ import { clsx } from 'clsx'
 const col = createColumnHelper<Offer>()
 
 function StatusBadge({ status }: { status: string }) {
-  const variant = status === 'active' ? 'green' : status === 'closed' ? 'gray' : status === 'cancelled' ? 'red' : 'yellow'
-  const label = { active: 'Ativo', pending: 'Pendente', closed: 'Encerrado', cancelled: 'Cancelado' }[status] ?? status
-  return <Badge variant={variant}>{label}</Badge>
+  const variant =
+    status === 'active' ? 'green' :
+    status === 'closed' ? 'gray' :
+    status === 'cancelled' ? 'red' :
+    status === 'pending' ? 'yellow' :
+    'gray'
+  const label: Record<string, string> = {
+    active: 'Ativo', pending: 'Pendente', closed: 'Encerrado',
+    cancelled: 'Cancelado', unknown: 'Desconhecido',
+  }
+  return <Badge variant={variant}>{label[status] ?? status}</Badge>
 }
 
 export default function OffersTable() {
   const [period, setPeriod] = useState<Period>('1m')
-  const [statusFilter, setStatusFilter] = useState('ongoing')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 50
 
   const [indicatorsOffer, setIndicatorsOffer] = useState<Offer | null>(null)
-  const [documentsOffer, setDocumentsOffer] = useState<Offer | null>(null)
   const [selected, setSelected] = useState<Offer[]>([])
 
   const { data, isLoading, isError } = useQuery({
@@ -115,22 +121,13 @@ export default function OffersTable() {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <div className="flex gap-1">
-          <button
-            onClick={() => setIndicatorsOffer(row.original)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
-          >
-            <BarChart2 className="w-3 h-3" />
-            Indicadores
-          </button>
-          <button
-            onClick={() => setDocumentsOffer(row.original)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
-          >
-            <FileText className="w-3 h-3" />
-            Documentos
-          </button>
-        </div>
+        <button
+          onClick={() => setIndicatorsOffer(row.original)}
+          className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
+        >
+          <BarChart2 className="w-3 h-3" />
+          Indicadores
+        </button>
       ),
     }),
   ]
@@ -234,11 +231,6 @@ export default function OffersTable() {
         offer={indicatorsOffer}
         open={indicatorsOffer !== null}
         onClose={() => setIndicatorsOffer(null)}
-      />
-      <DocumentsModal
-        offer={documentsOffer}
-        open={documentsOffer !== null}
-        onClose={() => setDocumentsOffer(null)}
       />
       <SelectedOffersActionBar selected={selected} onClear={() => setSelected([])} />
     </div>

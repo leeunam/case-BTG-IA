@@ -9,7 +9,6 @@ export const qk = {
   pipelineHealth:     ()              => ['pipeline-health'] as const,
   offers:             (p: Period, s: string, page: number) => ['offers', p, s, page] as const,
   indicators:         (id: number)    => ['indicators', id] as const,
-  documents:          (id: number)    => ['documents', id] as const,
   compareOffers:      (ids: number[]) => ['compare-offers', ids.join(',')] as const,
   alertSummary:       (p: Period)     => ['alert-summary', p] as const,
   alerts:             (p: Period, page: number) => ['alerts', p, page] as const,

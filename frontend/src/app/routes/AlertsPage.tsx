@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bell, BellOff, CheckCheck } from 'lucide-react'
+import { Check, CheckCheck } from 'lucide-react'
 import { api } from '../../lib/api'
 import { qk } from '../../lib/queryKeys'
 import { DEFAULT_PERIOD, ALERT_TYPE_LABELS, OFFER_TYPE_LABELS } from '../../lib/constants'
@@ -10,9 +10,8 @@ import type { Period } from '../../types'
 import { clsx } from 'clsx'
 
 const ALERT_PERIOD_OPTIONS = [
-  { label: '1 dia',  value: '1d'  },
   { label: '7 dias', value: '7d'  },
-  { label: '14 dias',value: '15d' },
+  { label: '15 dias',value: '15d' },
   { label: '1 mês',  value: '1m'  },
 ]
 
@@ -60,17 +59,17 @@ export default function AlertsPage() {
       {/* Summary cards */}
       {summary && (
         <div className="grid grid-cols-3 gap-4">
-          <Card className="p-4 text-center">
+          <Card className="p-5 flex flex-col items-center justify-center text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.total}</p>
-            <p className="text-xs text-gray-500 mt-1">Total de alertas</p>
+            <p className="text-xs text-gray-500 mt-1.5">Total de alertas</p>
           </Card>
-          <Card className="p-4 text-center">
+          <Card className="p-5 flex flex-col items-center justify-center text-center">
             <p className="text-2xl font-bold text-emerald-600">{summary.seen}</p>
-            <p className="text-xs text-gray-500 mt-1">✅ Vistos</p>
+            <p className="text-xs text-gray-500 mt-1.5">Vistos</p>
           </Card>
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-red-500">{summary.unseen}</p>
-            <p className="text-xs text-gray-500 mt-1">Não vistos</p>
+          <Card className="p-5 flex flex-col items-center justify-center text-center">
+            <p className="text-2xl font-bold text-amber-500">{summary.unseen}</p>
+            <p className="text-xs text-gray-500 mt-1.5">Não vistos</p>
           </Card>
         </div>
       )}
@@ -116,18 +115,20 @@ export default function AlertsPage() {
                     'border-b border-gray-50 dark:border-gray-800/50 last:border-0 transition-colors',
                     alert.seen
                       ? 'hover:bg-gray-50 dark:hover:bg-gray-800/30'
-                      : 'bg-amber-50/40 dark:bg-amber-900/5 hover:bg-amber-50/60 dark:hover:bg-amber-900/10',
+                      : 'bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100/70 dark:hover:bg-amber-900/20',
                   )}
                 >
                   <td className="px-4 py-3">
                     <button
                       onClick={() => markSeen.mutate({ id: alert.id, seen: !alert.seen })}
-                      className="rounded p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                       title={alert.seen ? 'Marcar como não visto' : 'Marcar como visto'}
+                      className="flex items-center justify-center w-5 h-5 rounded border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
+                      style={alert.seen
+                        ? { borderColor: '#10b981', backgroundColor: '#10b981' }
+                        : { borderColor: '#d1d5db', backgroundColor: 'transparent' }
+                      }
                     >
-                      {alert.seen
-                        ? <Bell className="w-4 h-4 text-gray-300" />
-                        : <BellOff className="w-4 h-4 text-amber-500" />}
+                      {alert.seen && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                     </button>
                   </td>
                   <td className="px-4 py-3">
