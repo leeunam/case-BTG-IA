@@ -4,7 +4,7 @@ import type {
   DailyInsight, VolumeByPeriod, RankingItem, IpoVsFollowOn,
   TopNewOffer, TopNewOffersResponse, PipelineHealth, MacroKpi, IpcaMonthlyPoint,
   PlayerItem, TopPlayerInsight, OffersByCoordinator, FundVolume,
-  Conversation, ReportJob, Period,
+  Conversation, ChatMessage, ReportJob, Period,
 } from '../types'
 
 const BASE = '/api'
@@ -76,7 +76,8 @@ export const api = {
   getTopPlayerInsight:  (p: Period) => get<TopPlayerInsight>('/general-scenario/top-player-insight', { period: p }),
 
   // ─── Agent ─────────────────────────────────────────────────────────────────
-  getConversations:   ()              => get<Conversation[]>('/agent/conversations'),
+  getConversations:         ()                => get<Conversation[]>('/agent/conversations'),
+  getConversationMessages:  (threadId: string) => get<ChatMessage[]>(`/agent/conversations/${threadId}/messages`),
   createConversation: ()              => post<Conversation>('/agent/conversations'),
   deleteConversation: (id: string)   => del(`/agent/conversations/${id}`),
 

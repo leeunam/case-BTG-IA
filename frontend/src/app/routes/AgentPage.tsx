@@ -21,6 +21,17 @@ export default function AgentPage() {
     queryFn:  api.getConversations,
   })
 
+  const { data: loadedMessages, isFetching: loadingMessages } = useQuery({
+    queryKey: qk.conversationMsgs(activeConv?.thread_id ?? ''),
+    queryFn:  () => api.getConversationMessages(activeConv!.thread_id),
+    enabled:  !!activeConv,
+    staleTime: Infinity,
+  })
+
+  useEffect(() => {
+    if (loadedMessages) setMessages(loadedMessages)
+  }, [loadedMessages])
+
   const createConv = useMutation({
     mutationFn: api.createConversation,
     onSuccess: (conv) => {
@@ -145,7 +156,7 @@ export default function AgentPage() {
           {conversations?.map(conv => (
             <div key={conv.id} className="group relative mb-1">
               <button
-                onClick={() => { setActiveConv(conv); setMessages([]) }}
+                onClick={() => { setActiveConv(conv); setMessages([]) ; qc.invalidateQueries({ queryKey: qk.conversationMsgs(conv.thread_id) }) }}
                 className={clsx(
                   'w-full text-left px-3 py-2.5 pr-8 rounded-lg text-sm transition-colors',
                   activeConv?.id === conv.id
@@ -180,7 +191,13 @@ export default function AgentPage() {
           <>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-              {messages.length === 0 && (
+              {loadingMessages && messages.length === 0 && (
+                <div className="flex flex-col items-center gap-3 py-8 text-gray-400">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <p className="text-sm">Carregando histórico...</p>
+                </div>
+              )}
+              {!loadingMessages && messages.length === 0 && (
                 <div className="flex flex-col items-center gap-3 py-8 text-gray-400">
                   <Bot className="w-8 h-8" />
                   <p className="text-sm text-center max-w-sm">

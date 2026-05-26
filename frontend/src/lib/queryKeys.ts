@@ -19,5 +19,6 @@ export const qk = {
   players:            (p: Period)     => ['players', p] as const,
   topPlayerInsight:   (p: Period)     => ['top-player-insight', p] as const,
   conversations:      ()              => ['conversations'] as const,
+  conversationMsgs:   (id: string)   => ['conversation-messages', id] as const,
   reportJob:          (id: string)    => ['report-job', id] as const,
 }
