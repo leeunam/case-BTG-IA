@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { GitCompare, FileText, X } from 'lucide-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { api } from '../../lib/api'
-import { qk } from '../../lib/queryKeys'
-import { PDF_POLL_INTERVAL_MS } from '../../lib/constants'
 import PdfGenerationModal from '../reports/PdfGenerationModal'
 import CompareModal from './CompareModal'
 import type { Offer } from '../../types'
@@ -75,7 +73,8 @@ export default function SelectedOffersActionBar({ selected, onClear }: Props) {
         <PdfGenerationModal
           open={pdfModalOpen}
           jobId={activeJobId}
-          onClose={() => { setPdfModalOpen(false); setActiveJobId(null) }}
+          onClose={() => setPdfModalOpen(false)}
+          onFinish={() => { setPdfModalOpen(false); setActiveJobId(null) }}
         />
       )}
 
