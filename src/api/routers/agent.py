@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from src.api.deps import DbConn
-from src.api.schemas.agent import ConversationItem, MessageRequest
+from src.api.schemas.agent import ConversationItem, MessageRequest, ChatMessageItem
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -49,6 +49,48 @@ def delete_conversation(conversation_id: str, db: DbConn):
     db.commit()
     if not result:
         raise HTTPException(404, "Conversation not found")
+
+
+@router.get("/conversations/{thread_id}/messages", response_model=list[ChatMessageItem])
+def get_conversation_messages(thread_id: str, db: DbConn):
+    """Return the stored message history for a conversation thread."""
+    from src.agents.fii_agent import build_agent
+
+    existing = db.execute(
+        "SELECT id FROM agent_conversation WHERE thread_id = %s", (thread_id,)
+    ).fetchone()
+    if not existing:
+        raise HTTPException(404, "Conversation not found")
+
+    agent = build_agent()
+    config = {"configurable": {"thread_id": thread_id}}
+    state = agent.get_state(config)
+
+    result: list[ChatMessageItem] = []
+    pending_tools: list[dict] = []
+
+    for msg in state.values.get("messages", []):
+        type_name = type(msg).__name__
+
+        if type_name == "HumanMessage":
+            pending_tools = []
+            result.append(ChatMessageItem(role="user", content=str(msg.content)))
+        elif type_name == "AIMessage":
+            content = str(msg.content) if msg.content else ""
+            if content:
+                result.append(ChatMessageItem(
+                    role="assistant",
+                    content=content,
+                    tool_calls=[{"name": t["name"], "content": t["content"]} for t in pending_tools],
+                ))
+                pending_tools = []
+        elif type_name == "ToolMessage":
+            pending_tools.append({
+                "name": getattr(msg, "name", "") or "",
+                "content": str(msg.content)[:300],
+            })
+
+    return result
 
 
 @router.post("/messages")

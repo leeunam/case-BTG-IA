@@ -16,6 +16,17 @@ class MessageRequest(BaseModel):
     message: str
 
 
+class ToolCallItem(BaseModel):
+    name: str
+    content: str
+
+
+class ChatMessageItem(BaseModel):
+    role: str
+    content: str
+    tool_calls: list[ToolCallItem] = []
+
+
 class DocumentItem(BaseModel):
     id: int
     offer_id: Optional[int]
