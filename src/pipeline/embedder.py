@@ -5,20 +5,21 @@ Two chunk types:
   1. offer_profile  — primary offer description + market context at registration time
   2. fund_monthly   — FII monthly informe (PL, DY, cotistas, assets) from CVM
 
-Embedding backend (auto-selected):
-  - OpenAI text-embedding-3-small (1536 dims) if OPENAI_API_KEY has quota
-  - sentence-transformers paraphrase-multilingual-mpnet-base-v2 (768 dims) as free fallback
+Embedding backend (padrão: local):
+  - sentence-transformers paraphrase-multilingual-mpnet-base-v2 (768 dims) — padrão
+  - OpenAI text-embedding-3-small (1536 dims) — apenas com --backend=openai explícito
 
-Schema uses VECTOR(768) — compatible with the multilingual model.
-If you switch to OpenAI, run: ALTER TABLE embedding ALTER COLUMN embedding TYPE VECTOR(1536);
+Schema usa VECTOR(768) conforme migration 006.
+NÃO misture backends: todos os vetores no banco devem ter a mesma dimensão.
+Para trocar para OpenAI: rode migration 006 novamente + python -m src.pipeline.embedder --backend=openai
 
 Usage:
-    python -m src.pipeline.embedder                  # embed all pending
+    python -m src.pipeline.embedder                  # embed all pending (local backend)
     python -m src.pipeline.embedder --type=offers    # only offer profiles
     python -m src.pipeline.embedder --type=monthly   # only fund monthly
     python -m src.pipeline.embedder --limit=200      # cap chunks per run
-    python -m src.pipeline.embedder --backend=openai # force OpenAI
-    python -m src.pipeline.embedder --backend=local  # force sentence-transformers
+    python -m src.pipeline.embedder --backend=openai # OpenAI (exige VECTOR(1536) no banco)
+    python -m src.pipeline.embedder --backend=local  # sentence-transformers (padrão)
 """
 import os
 import sys
@@ -65,13 +66,9 @@ def _build_local_backend():
 def _select_backend(force: str | None = None):
     if force == "openai":
         return _build_openai_backend()
-    if force == "local":
-        return _build_local_backend()
-    try:
-        return _build_openai_backend()
-    except Exception:
-        print("  OpenAI unavailable — falling back to local sentence-transformers")
-        return _build_local_backend()
+    # Padrão: local. Determinístico, gratuito, sem risco de mistura de dimensões.
+    # Use --backend=openai explicitamente se quiser OpenAI (requer VECTOR(1536) no banco).
+    return _build_local_backend()
 
 
 _embed_fn, _dimensions, _model_name = None, None, None  # lazy init

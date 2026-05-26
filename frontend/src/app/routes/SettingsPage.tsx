@@ -6,12 +6,13 @@ import { api } from '../../lib/api'
 import { Card, SectionHeader } from '../../components/shared'
 
 const SOURCE_OPTIONS = [
-  { value: 'all',               label: 'Todas as fontes (~10 min)' },
+  { value: 'regulatory', label: 'Regulatório — CVM + BCB + B3 + Status Invest (~10 min)' },
+  { value: 'market',     label: 'Mercado (pregão) — IFIX + Fundamentus + FundsExplorer (~2 min)' },
   { value: 'cvm_dados_abertos', label: 'CVM Dados Abertos (~2 min)' },
-  { value: 'bcb_sgs',          label: 'BCB SGS (~30s)' },
+  { value: 'bcb_sgs',          label: 'BCB SGS + Focus (~30s)' },
   { value: 'fundamentus',      label: 'Fundamentus (~1 min)' },
   { value: 'b3_listings',      label: 'B3 Listings (~10s)' },
-  { value: 'b3_ifix',          label: 'IFIX (~10s)' },
+  { value: 'b3_ifix',          label: 'IFIX / Yahoo Finance (~10s)' },
   { value: 'status_invest',    label: 'Status Invest (~5 min)' },
   { value: 'funds_explorer',   label: 'Funds Explorer (~5 min)' },
 ]
@@ -94,7 +95,7 @@ export default function SettingsPage() {
       <Card className="p-5">
         <SectionHeader
           title="Atualização de dados"
-          subtitle="Aciona o pipeline de coleta para uma ou todas as fontes. Operação pode demorar vários minutos."
+          subtitle="Regulatório roda automaticamente às 06:30. Mercado roda às 10:30, 14:00 e 17:00 (pregão B3)."
         />
         <div className="flex items-end gap-3 mt-4">
           <div className="flex-1">

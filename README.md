@@ -167,7 +167,6 @@ Mantém a coleta rodando toda manhã às 06:30 (horário de Brasília). Encerra 
 ## Roadmap
 
 - [ ] Parsing de PDFs de prospectos e lâminas via LLM — para capturar termos financeiros que não estão nos CSVs (cap rate, LTV, duration)
-- [ ] Relatório em PDF formatado — a geração de texto via LLM já existe; falta o renderer (WeasyPrint ou Puppeteer) para entregar um `.pdf` real
 - [ ] Análise IA do player top na tela Cenário Geral — pré-gerada no pipeline, similar ao insight diário
 - [ ] Expansão para outros ativos — ações (IPOs/follow-ons), CRI, CRA, FIDC, debêntures
 
